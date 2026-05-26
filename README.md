@@ -53,7 +53,20 @@ pnpm test        # unit tests
 ### Adding skills
 
 - **Native**: add a `transformation-config/skills/<group>/config.yaml` with a `variants` array.
-- **Prebuilt / ocx**: add an entry to `transformation-config/sources.yaml` pointing at a directory that contains `SKILL.md` files.
+- **Prebuilt**: point `sources.yaml` `prebuilt` at a directory containing a `SKILL.md` (e.g. Skill_Seekers output).
+- **ocx**: `ocx add <component>` installs skills to `<project>/.opencode/skills/`. Point `sources.yaml` `ocx_profiles` at the project root and they're imported.
+
+## Launch
+
+The build emits a Claude Code plugin at `dist/plugin/`. Load it for a session:
+
+```
+pnpm start                                   # builds, then launches claude with the plugin
+# equivalently:
+pnpm build && claude --plugin-dir="$PWD/dist/plugin"
+```
+
+The plugin's skills (and the skill-reminder hook) are registered automatically for that session. Validate the emitted plugin with `claude plugin validate dist/plugin`.
 
 ## Reference content
 

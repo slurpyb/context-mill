@@ -6,16 +6,17 @@
 #                                          SKILL.md (+ optional references/),
 #                                          e.g. the output of Skill_Seekers
 #                                          (github.com/yusufkaraaslan/Skill_Seekers)
-#   3. ocx_profiles                      — an ocx profile / registry directory
-#                                          (github.com/kdcokenny/ocx). Skills in
-#                                          the registry are already in Claude
-#                                          (SKILL.md) format, so the importer
-#                                          scans the directory and imports every
-#                                          SKILL.md skill folder it finds.
+#   3. ocx_profiles                      — an ocx project directory
+#                                          (github.com/kdcokenny/ocx). `ocx add`
+#                                          installs skills to
+#                                          <project>/.opencode/skills/<name>/,
+#                                          already in Claude (SKILL.md) format.
+#                                          Point `path` at the project root (or
+#                                          its .opencode/ or .opencode/skills/)
+#                                          and every skill there is imported.
 #
-# Both source types use the same importer: a folder is treated as a skill iff it
-# contains a SKILL.md. Paths may be absolute, "~"-prefixed, or relative to the
-# repo root.
+# A folder is treated as a skill iff it contains a SKILL.md. Paths may be
+# absolute, "~"-prefixed, or relative to the repo root.
 
 prebuilt: []
 #  - path: ../skill-seekers/output/godot   # dir containing SKILL.md (+ references/)
@@ -24,6 +25,6 @@ prebuilt: []
 #    tags: [godot, gamedev]                # optional; merged with SKILL.md frontmatter tags
 
 ocx_profiles: []
-#  - path: ~/.config/opencode/profiles/myprofile   # scanned recursively for SKILL.md skill folders
-#    group: ocx                                     # group for every skill found
-#    tags: [ocx]                                    # optional; applied to every imported skill
+#  - path: ~/projects/my-app          # ocx project root; reads <root>/.opencode/skills/*
+#    group: ocx                        # manifest category / plugin group
+#    tags: [ocx]                       # optional; applied to every imported skill

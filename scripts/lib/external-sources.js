@@ -53,33 +53,32 @@ function toSkillId(value) {
         .replace(/^-+|-+$/g, '') || 'skill';
 }
 
-// Bookkeeping dirs that never hold skills. Note we deliberately do NOT skip
-// all dotfiles: ocx installs components under `.opencode/` and Claude Code
-// keeps skills under `.claude/skills/`, so the scan must descend into hidden
-// component dirs — only git/ocx receipts and node_modules are pruned.
-const SCAN_PRUNE = new Set(['node_modules', '.git', '.ocx']);
+/**
+ * Locate the directory ocx installs skills into. `ocx add <component>` writes
+ * skills to `<project>/.opencode/skills/<name>/` (the component-type → dir map
+ * in ocx is `skill → "skills"`). We accept the project root, a `.opencode`
+ * dir, or the `.opencode/skills` dir itself.
+ */
+function ocxSkillsDir(baseDir) {
+    if (!baseDir) return null;
+    const candidates = [
+        path.join(baseDir, '.opencode', 'skills'),
+        path.basename(baseDir) === '.opencode' ? path.join(baseDir, 'skills') : null,
+        path.basename(baseDir) === 'skills' ? baseDir : null,
+    ].filter(Boolean);
+    return candidates.find(d => fs.existsSync(d) && fs.statSync(d).isDirectory()) || null;
+}
 
 /**
- * Recursively find directories that directly contain a SKILL.md, starting at
- * `rootDir`. Does not descend into a skill's own subdirectories.
+ * Immediate child directories of `skillsDir` that contain a SKILL.md. ocx lays
+ * skills out one-level-deep under `.opencode/skills/`, so this is a flat scan,
+ * not a recursive grep.
  */
-function findSkillDirs(rootDir) {
-    const found = [];
-    if (!rootDir || !fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) return found;
-
-    function walk(dir) {
-        if (fs.existsSync(path.join(dir, 'SKILL.md'))) {
-            found.push(dir);
-            return; // a skill dir is a leaf — don't recurse into references/, etc.
-        }
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (!entry.isDirectory() || SCAN_PRUNE.has(entry.name)) continue;
-            walk(path.join(dir, entry.name));
-        }
-    }
-
-    walk(rootDir);
-    return found;
+function skillDirsUnder(skillsDir) {
+    if (!skillsDir || !fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) return [];
+    return fs.readdirSync(skillsDir, { withFileTypes: true })
+        .filter(e => e.isDirectory() && fs.existsSync(path.join(skillsDir, e.name, 'SKILL.md')))
+        .map(e => path.join(skillsDir, e.name));
 }
 
 /**
@@ -132,23 +131,35 @@ function resolveImportTargets({ configDir, repoRoot, log = () => {} }) {
 
     for (const entry of prebuilt) {
         const dir = resolveSourcePath(entry.path, repoRoot);
-        if (!dir || !fs.existsSync(path.join(dir, 'SKILL.md'))) {
-            log(`  [WARN] prebuilt source has no SKILL.md, skipping: ${entry.path}`);
+        const group = entry.group || 'imported';
+        const tags = entry.tags || [];
+
+        // A prebuilt entry may point at a single skill (dir with SKILL.md) or a
+        // parent directory holding several skill folders.
+        if (dir && fs.existsSync(path.join(dir, 'SKILL.md'))) {
+            targets.push({ skillSrcDir: dir, id: entry.id, group, tags });
             continue;
         }
-        targets.push({
-            skillSrcDir: dir,
-            id: entry.id,
-            group: entry.group || 'imported',
-            tags: entry.tags || [],
-        });
+        const children = skillDirsUnder(dir);
+        if (children.length === 0) {
+            log(`  [WARN] prebuilt source has no SKILL.md skills, skipping: ${entry.path}`);
+            continue;
+        }
+        for (const skillSrcDir of children) {
+            targets.push({ skillSrcDir, id: undefined, group, tags });
+        }
     }
 
     for (const entry of ocx_profiles) {
         const dir = resolveSourcePath(entry.path, repoRoot);
-        const skillDirs = findSkillDirs(dir);
+        const skillsDir = ocxSkillsDir(dir);
+        if (!skillsDir) {
+            log(`  [WARN] no .opencode/skills found for ocx source, skipping: ${entry.path}`);
+            continue;
+        }
+        const skillDirs = skillDirsUnder(skillsDir);
         if (skillDirs.length === 0) {
-            log(`  [WARN] ocx profile has no SKILL.md skills, skipping: ${entry.path}`);
+            log(`  [WARN] .opencode/skills is empty (run \`ocx add\` first?), skipping: ${entry.path}`);
             continue;
         }
         for (const skillSrcDir of skillDirs) {
@@ -205,7 +216,8 @@ function ingestExternalSkills({ configDir, repoRoot, outputDir, existingIds = ne
 export {
     loadSourcesConfig,
     resolveSourcePath,
-    findSkillDirs,
+    ocxSkillsDir,
+    skillDirsUnder,
     listExternalSkills,
     ingestExternalSkills,
     IMPORTED_TYPE,

@@ -1,0 +1,19 @@
+# Example: build a plugin from the SEOJuice skill pack.
+#
+# These 14 skills (github.com/calm-north/seojuice-skills, MIT) are already in
+# Claude SKILL.md format, so they drop straight into the `prebuilt` path — the
+# same path Skill_Seekers output uses. No conversion needed.
+#
+# To try it:
+#   cp examples/seojuice-skills/sources.yaml transformation-config/sources.yaml
+#   pnpm start          # builds dist/plugin/ (14 seo skills) and launches claude
+#
+# A single prebuilt entry pointing at a parent directory imports every skill
+# folder beneath it.
+
+prebuilt:
+  - path: examples/seojuice-skills/skills   # parent dir holding 14 SKILL.md skill folders
+    group: seo
+    tags: [seo]
+
+ocx_profiles: []

@@ -6,6 +6,7 @@
   "description": "Context Mill: assembling and packaging context for AI agents and LLMs",
   "scripts": {
     "build": "node scripts/build.js",
+    "start": "node scripts/build.js && claude --plugin-dir=\"$PWD/dist/plugin\"",
     "dev": "node scripts/dev-server.js",
     "test:plugins": "vitest run scripts/plugins/tests",
     "test:plugins:watch": "vitest scripts/plugins/tests",

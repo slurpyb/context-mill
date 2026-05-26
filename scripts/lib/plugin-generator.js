@@ -66,6 +66,7 @@ EOF
  */
 function generatePlugin({ skills, tempDir, version, outputDir, configDir }) {
     const branding = loadBranding(configDir);
+    const repoRoot = path.dirname(configDir);
     const pluginDir = path.join(outputDir, 'plugin');
 
     fs.rmSync(pluginDir, { recursive: true, force: true });
@@ -79,6 +80,20 @@ function generatePlugin({ skills, tempDir, version, outputDir, configDir }) {
         }
         copyDirSync(srcDir, path.join(pluginDir, 'skills', skill.id));
         copied++;
+    }
+
+    // Bundle repo agents (e.g. the millwright guide) so a user who launches the
+    // plugin gets them alongside the skills.
+    const agentsSrc = path.join(repoRoot, '.claude', 'agents');
+    let agentCount = 0;
+    if (fs.existsSync(agentsSrc)) {
+        for (const entry of fs.readdirSync(agentsSrc, { withFileTypes: true })) {
+            if (entry.isFile() && entry.name.endsWith('.md')) {
+                fs.mkdirSync(path.join(pluginDir, 'agents'), { recursive: true });
+                fs.copyFileSync(path.join(agentsSrc, entry.name), path.join(pluginDir, 'agents', entry.name));
+                agentCount++;
+            }
+        }
     }
 
     const metaDir = path.join(pluginDir, '.claude-plugin');
@@ -96,9 +111,9 @@ function generatePlugin({ skills, tempDir, version, outputDir, configDir }) {
         writeSkillReminderHook(pluginDir);
     }
 
-    console.log(`  ✓ ${branding.plugin.name} (${copied} skills)`);
+    console.log(`  ✓ ${branding.plugin.name} (${copied} skills, ${agentCount} agents)`);
 
-    return { pluginDir, skillCount: copied };
+    return { pluginDir, skillCount: copied, agentCount };
 }
 
 export { generatePlugin };

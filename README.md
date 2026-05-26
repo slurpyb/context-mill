@@ -48,7 +48,7 @@ pnpm test        # unit tests
 | `dist/skills/*.zip` | One ZIP per skill |
 | `dist/skills/manifest.json` | Resource URIs and metadata |
 | `dist/skills/skill-menu.json` | Skills grouped by category |
-| `dist/plugin/` | A Claude Code plugin (`skills/` + `.claude-plugin/`), shaped like a standard plugin repo |
+| `dist/plugin/` | A Claude Code plugin (`skills/` + `agents/` + `.claude-plugin/`), shaped like a standard plugin repo |
 | `dist/skills-mcp-resources.zip` | Complete bundled archive |
 
 ### Adding skills
@@ -68,7 +68,11 @@ pnpm start                                   # builds, then launches claude with
 pnpm build && claude --plugin-dir="$PWD/dist/plugin"
 ```
 
-The plugin's skills (and the skill-reminder hook) are registered automatically for that session. Validate the emitted plugin with `claude plugin validate dist/plugin`.
+The plugin's skills, the skill-reminder hook, and any agents in `.claude/agents/` are registered automatically for that session. Validate the emitted plugin with `claude plugin validate dist/plugin`.
+
+### The millwright agent
+
+`.claude/agents/millwright.md` is a resident guide that knows the mill and Skill_Seekers. It's active when you work in this repo, and it's bundled into `dist/plugin/agents/` so anyone who launches the plugin gets it too. Ask it to add skills, wrangle Skill_Seekers, or run upkeep.
 
 ## Reference content
 

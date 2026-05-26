@@ -28,3 +28,16 @@ ocx_profiles: []
 #  - path: ~/projects/my-app          # ocx project root; reads <root>/.opencode/skills/*
 #    group: ocx                        # manifest category / plugin group
 #    tags: [ocx]                       # optional; applied to every imported skill
+
+# 4. skill_seekers — glue multiple sources into skills via the real
+#    Skill_Seekers CLI (github.com/yusufkaraaslan/Skill_Seekers). Requires the
+#    `skill-seekers` binary on PATH. During build the mill runs the CLI, then
+#    imports the skills it writes to <cwd>/output/<name>/.
+skill_seekers: []
+#  - config: configs/myframework_unified.json   # `skill-seekers unified --config <file>` (multi-source + conflict detection)
+#    group: docs
+#    tags: [docs]
+#  - source: https://docs.example.com           # `skill-seekers create <source>` (url / owner/repo / file / config)
+#    group: docs
+#    cwd: .skill-seekers                         # optional working dir (default: .skill-seekers); output under <cwd>/output/
+#    args: ["--name", "example"]                 # optional extra CLI args

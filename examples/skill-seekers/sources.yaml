@@ -1,0 +1,28 @@
+# Example: use Skill_Seekers as the glue engine.
+#
+# Skill_Seekers (github.com/yusufkaraaslan/Skill_Seekers) scrapes and MERGES
+# multiple sources (docs + GitHub + PDF + ...) into a unified skill with
+# conflict detection. The mill shells out to the real `skill-seekers` CLI, then
+# packages whatever it writes to <cwd>/output/<name>/.
+#
+# Requires: the `skill-seekers` binary on PATH (uv tool install skill-seekers)
+# and network access for scraping.
+#
+# To try it:
+#   cp examples/skill-seekers/sources.yaml transformation-config/sources.yaml
+#   # edit example_unified.json to point at real sources, then:
+#   pnpm start
+
+prebuilt: []
+ocx_profiles: []
+
+skill_seekers:
+  # Multi-source "glue" build with conflict detection.
+  - config: examples/skill-seekers/example_unified.json
+    group: docs
+    tags: [docs]
+
+  # Single source (uncomment to try): url, owner/repo, or a file path.
+  # - source: https://docs.example.com
+  #   group: docs
+  #   args: ["--name", "example"]

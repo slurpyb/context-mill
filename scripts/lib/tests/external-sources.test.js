@@ -3,9 +3,11 @@ import { mkdirSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
+import { chmodSync } from 'fs';
 import {
     ocxSkillsDir,
     skillDirsUnder,
+    skillSeekersDirs,
     listExternalSkills,
     ingestExternalSkills,
 } from '../external-sources.js';
@@ -77,6 +79,61 @@ describe('external-sources — ocx', () => {
         expect(skills.map(s => s.id)).toEqual(['pragmatic-programmer']);
         expect(existsSync(join(out, 'pragmatic-programmer', 'SKILL.md'))).toBe(true);
         expect(existsSync(join(out, 'pragmatic-programmer', 'references', 'r.md'))).toBe(true);
+    });
+
+    describe('skill_seekers (shell-out to the real CLI)', () => {
+        let savedPath;
+        let binDir;
+
+        function installFakeCli(body) {
+            binDir = join(tmp, 'bin');
+            mkdirSync(binDir, { recursive: true });
+            const script = join(binDir, 'skill-seekers');
+            writeFileSync(script, body);
+            chmodSync(script, 0o755);
+            savedPath = process.env.PATH;
+            process.env.PATH = `${binDir}:${savedPath}`;
+        }
+
+        afterEach(() => {
+            if (savedPath !== undefined) process.env.PATH = savedPath;
+            savedPath = undefined;
+        });
+
+        it('runs the CLI and ingests the skill it writes to output/<name>/', () => {
+            installFakeCli(`#!/usr/bin/env bash
+mkdir -p output/glued/references
+cat > output/glued/SKILL.md <<'EOF'
+---
+name: glued
+description: Glued by skill-seekers
+---
+# glued
+EOF
+echo ref > output/glued/references/r.md
+`);
+            writeFileSync(join(configDir, 'sources.yaml'),
+                `prebuilt: []\nocx_profiles: []\nskill_seekers:\n  - config: my.json\n    group: docs\n    tags: [docs]\n`);
+            const out = join(tmp, 'out-ss');
+            const skills = ingestExternalSkills({ configDir, repoRoot: tmp, outputDir: out });
+            expect(skills.map(s => s.id)).toEqual(['glued']);
+            expect(skills[0].group).toBe('docs');
+            expect(existsSync(join(out, 'glued', 'SKILL.md'))).toBe(true);
+            expect(existsSync(join(out, 'glued', 'references', 'r.md'))).toBe(true);
+            // CLI wrote to the entry's working dir
+            const { outputDir } = skillSeekersDirs({ config: 'my.json' }, tmp);
+            expect(existsSync(join(outputDir, 'glued', 'SKILL.md'))).toBe(true);
+        });
+
+        it('throws a clear, actionable error when the CLI is not installed', () => {
+            savedPath = process.env.PATH;
+            process.env.PATH = join(tmp, 'empty-bin'); // no skill-seekers anywhere
+            mkdirSync(join(tmp, 'empty-bin'), { recursive: true });
+            writeFileSync(join(configDir, 'sources.yaml'),
+                `prebuilt: []\nocx_profiles: []\nskill_seekers:\n  - source: https://x.test\n    group: docs\n`);
+            expect(() => ingestExternalSkills({ configDir, repoRoot: tmp, outputDir: join(tmp, 'o') }))
+                .toThrow(/skill-seekers.*CLI/i);
+        });
     });
 
     it('warns and skips when .opencode/skills is missing', () => {

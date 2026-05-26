@@ -73,9 +73,8 @@ routeTree.gen.ts
 # Build artifacts
 dist/
 
-# Audit skill runtime ledger
-.posthog-audit-checks.json
-posthog-audit-report.md
+# skill-seekers working dir (scraped data + generated skills)
+.skill-seekers/
 
 # Misc
 *.pem

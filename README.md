@@ -8,10 +8,11 @@ The context mill gathers content from multiple sources, packages it into a versi
 
 The build is an assembly line with three stages:
 
-**1. Context sourcing** — skills come from three places:
+**1. Context sourcing** — skills come from four places:
 - **Native skill groups** in `transformation-config/skills/**` (`config.yaml` + variants), combining example code, fetched docs, prompts, and tag-based guidance.
-- **Prebuilt skills** — directories that already contain a `SKILL.md` (+ optional `references/`), e.g. the output of [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers).
-- **ocx profiles** — an [ocx](https://github.com/kdcokenny/ocx) profile/registry directory. Skills there are already in Claude (`SKILL.md`) format, so the importer scans the directory and imports every skill folder it finds.
+- **Prebuilt skills** — a directory containing a `SKILL.md` (or a parent of several), e.g. a skill pack already in Claude format.
+- **ocx profiles** — an [ocx](https://github.com/kdcokenny/ocx) project. `ocx add` installs Claude-format skills to `<project>/.opencode/skills/`; point at the project root and they're imported.
+- **Skill_Seekers (glue)** — the mill shells out to the real [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) CLI to scrape and **merge** multiple sources (docs + GitHub + PDF + …) into a unified skill with conflict detection, then packages the result.
 
 **2. Context assembly** — sources are transformed and packaged into per-skill ZIPs plus a portable, self-contained manifest.
 
@@ -53,8 +54,9 @@ pnpm test        # unit tests
 ### Adding skills
 
 - **Native**: add a `transformation-config/skills/<group>/config.yaml` with a `variants` array.
-- **Prebuilt**: point `sources.yaml` `prebuilt` at a directory containing a `SKILL.md` (e.g. Skill_Seekers output).
-- **ocx**: `ocx add <component>` installs skills to `<project>/.opencode/skills/`. Point `sources.yaml` `ocx_profiles` at the project root and they're imported.
+- **Prebuilt**: point `sources.yaml` `prebuilt` at a `SKILL.md` directory (or a parent of several). See `examples/seojuice-skills/`.
+- **ocx**: `ocx add <component>` installs skills to `<project>/.opencode/skills/`. Point `sources.yaml` `ocx_profiles` at the project root.
+- **Skill_Seekers**: add a `sources.yaml` `skill_seekers` entry (`config:` for a unified merge, or `source:` for one source). Requires the `skill-seekers` CLI. See `examples/skill-seekers/`.
 
 ## Launch
 

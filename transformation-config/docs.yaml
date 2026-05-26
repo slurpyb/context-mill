@@ -1,18 +1,14 @@
 # Docs Configuration
-# Standalone documentation resources served inline via MCP (no ZIP packaging)
+# Standalone documentation resources served inline via MCP (no ZIP packaging).
+#
+# Each entry fetches one or more markdown URLs and inlines them in the manifest.
+# Example:
+#   docs:
+#     - id: my-doc
+#       display_name: My Doc
+#       description: What this doc covers
+#       tags: [core]
+#       urls:
+#         - https://example.com/docs/my-doc.md
 
-docs:
-  - id: identify-users
-    display_name: Identifying Users
-    description: How to identify users and associate events with them
-    tags: [core, users, identity]
-    urls:
-      - https://posthog.com/docs/getting-started/identify-users.md
-
-  - id: cloudflare-workers
-    display_name: Cloudflare Workers
-    description: Runtime-specific overrides for PostHog on Cloudflare Workers (env access, event flushing, Node.js compat)
-    tags: [runtime, cloudflare, workers, edge]
-    release_asset: true  # Also write as standalone .md for wizard to fetch directly
-    urls:
-      - https://posthog.com/docs/libraries/cloudflare-workers.md
+docs: []

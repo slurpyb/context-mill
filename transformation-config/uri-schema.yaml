@@ -5,7 +5,7 @@
 manifest_version: "1.0"
 
 # Base URI scheme for all resources
-scheme: posthog://
+scheme: skill://
 
 # URI patterns for each resource type
 # Variables use {name} syntax for substitution

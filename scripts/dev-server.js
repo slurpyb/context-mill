@@ -7,7 +7,7 @@
  * and basics/ for changes. A file edit triggers an incremental rebuild of
  * only the skills that own the path; manifest.json and skill-menu.json are
  * regenerated from the in-memory skill list. The bundled
- * skills-mcp-resources.zip and marketplace tree stay at initial-build state
+ * skills-mcp-resources.zip and plugin tree stay at initial-build state
  * until the next manual `npm run build`.
  *
  * Doc URLs (`docs_urls`, `shared_docs`, `docs.yaml`) are fetched once during
@@ -297,7 +297,7 @@ function createServer() {
 // --- entry ---
 
 async function main() {
-    console.log('🎯 PostHog MCP Skills Development Server');
+    console.log('🎯 Context Mill Skills Development Server');
     console.log('=========================================');
 
     if (FORCE_FULL_REBUILD) {

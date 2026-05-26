@@ -1,0 +1,18 @@
+# Branding configuration
+# Single source of truth for author/repo/plugin identity. The generators
+# read this instead of hardcoding any org name, so the mill stays unbranded.
+
+author: context-mill
+
+# Used to build release download URLs for skill ZIPs (overridden at runtime by
+# SKILLS_BASE_URL, e.g. the dev server).
+repo_url: https://github.com/slurpyb/context-mill
+
+# Identity for the emitted Claude Code plugin (dist/plugin/).
+plugin:
+  name: context-mill
+  description: Context packaged as Agent Skills for AI agents and LLMs
+  # Inject a UserPromptSubmit hook reminding the agent to check its skills.
+  skill_reminder_hook: true
+
+default_keywords: [skills, agents, context]

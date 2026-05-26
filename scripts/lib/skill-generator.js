@@ -13,6 +13,8 @@ import path from 'path';
 import yaml from 'js-yaml';
 import matter from 'gray-matter';
 import { processExample, loadSkipPatterns, mergeSkipPatterns, defaultPlugins } from './example-processor.js';
+import { loadBranding } from './branding.js';
+import { ingestExternalSkills, listExternalSkills } from './external-sources.js';
 
 /**
  * Load YAML config file
@@ -31,6 +33,8 @@ function loadYaml(configPath) {
 function loadSkillsConfig(configDir) {
     const skillsDir = path.join(configDir, 'skills');
     const config = {};
+
+    if (!fs.existsSync(skillsDir)) return config;
 
     function scan(dir, keyParts) {
         const configFile = path.join(dir, 'config.yaml');
@@ -184,7 +188,7 @@ function toSentenceCase(str) {
 
     // Proper nouns to preserve
     const properNouns = [
-        'PostHog', 'Next.js', 'React', 'JavaScript', 'TypeScript',
+        'Next.js', 'React', 'JavaScript', 'TypeScript',
         'Node.js', 'API', 'SDK', 'SSR', 'SPA', 'URL', 'HTML', 'CSS',
     ];
 
@@ -213,7 +217,7 @@ function extractTitle(content) {
 
 /**
  * Infer a description from URL path
- * e.g., /docs/libraries/next-js → "PostHog integration documentation for Next.js"
+ * e.g., /docs/libraries/next-js → "Documentation for Next.js"
  */
 function inferDescription(url) {
     try {
@@ -226,13 +230,9 @@ function inferDescription(url) {
         // Convert kebab-case to readable
         const readable = lastPart.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-        if (pathParts.includes('libraries') || pathParts.includes('docs')) {
-            return `PostHog documentation for ${readable}`;
-        }
-
-        return `PostHog documentation: ${readable}`;
+        return `Documentation for ${readable}`;
     } catch (e) {
-        return 'PostHog documentation';
+        return 'Documentation';
     }
 }
 
@@ -406,12 +406,12 @@ function discoverWorkflows(promptsDir) {
 /**
  * Generate SKILL.md frontmatter
  */
-function generateFrontmatter(skill, version) {
+function generateFrontmatter(skill, version, branding) {
     const frontmatter = {
         name: skill.id,
         description: skill.description,
         metadata: {
-            author: 'PostHog',
+            author: branding?.author || 'context-mill',
             version: version,
         },
     };
@@ -445,6 +445,7 @@ async function generateSkill({
     skillTemplate,
     sharedDocs,
     workflows,
+    branding,
 }) {
     const skillDir = path.join(outputDir, skill.id);
     const referencesDir = path.join(skillDir, 'references');
@@ -594,7 +595,7 @@ async function generateSkill({
     const workflowText = formatWorkflowSteps(workflows);
 
     // Build SKILL.md content
-    let skillContent = generateFrontmatter(skill, version);
+    let skillContent = generateFrontmatter(skill, version, branding);
 
     // Apply template substitutions
     let body = skillTemplate
@@ -635,8 +636,9 @@ function loadAndExpandSkills({ configDir }) {
     const skillsConfig = loadSkillsConfig(configDir);
     const commandmentsConfig = loadCommandments(configDir);
     const skipPatterns = loadSkipPatterns(path.join(configDir, 'skip-patterns.yaml'));
+    const branding = loadBranding(configDir);
     const skills = expandSkillGroups(skillsConfig, configDir);
-    return { skills, commandmentsConfig, skipPatterns };
+    return { skills, commandmentsConfig, skipPatterns, branding };
 }
 
 /**
@@ -651,6 +653,7 @@ async function runGenerate({
     skipPatterns,
     commandmentsConfig,
     workflows,
+    branding,
 }) {
     fs.mkdirSync(outputDir, { recursive: true });
 
@@ -668,6 +671,7 @@ async function runGenerate({
             skillTemplate: skill._template,
             sharedDocs: skill._sharedDocs || [],
             workflows,
+            branding,
         });
 
         console.log(`  ✓ ${skill.id}`);
@@ -687,12 +691,18 @@ async function generateSkillsByIds({
     promptsDir,
     version,
 }) {
-    const { skills, commandmentsConfig, skipPatterns } = loadAndExpandSkills({ configDir });
+    const { skills, commandmentsConfig, skipPatterns, branding } = loadAndExpandSkills({ configDir });
     const idSet = new Set(ids);
     const filtered = skills.filter(s => idSet.has(s.id));
 
+    // External (imported) skills are not rebuilt incrementally — their dirs
+    // persist in dist/ from the initial full build — but their metadata must
+    // stay in `allSkills` so the manifest doesn't drop them.
+    const externalSkills = listExternalSkills({ configDir, repoRoot });
+    const allSkills = [...skills.map(serializeSkill), ...externalSkills];
+
     if (filtered.length === 0) {
-        return { allSkills: skills.map(serializeSkill), rebuiltSkills: [] };
+        return { allSkills, rebuiltSkills: [] };
     }
 
     const workflows = discoverWorkflows(promptsDir);
@@ -706,10 +716,11 @@ async function generateSkillsByIds({
         skipPatterns,
         commandmentsConfig,
         workflows,
+        branding,
     });
 
     return {
-        allSkills: skills.map(serializeSkill),
+        allSkills,
         rebuiltSkills: filtered.map(serializeSkill),
     };
 }
@@ -733,7 +744,7 @@ async function generateAllSkills({
 }) {
     console.log('Loading configuration...');
 
-    const { skills, commandmentsConfig, skipPatterns } = loadAndExpandSkills({ configDir });
+    const { skills, commandmentsConfig, skipPatterns, branding } = loadAndExpandSkills({ configDir });
 
     console.log('Discovering workflows...');
     const workflows = discoverWorkflows(promptsDir);
@@ -750,11 +761,24 @@ async function generateAllSkills({
         skipPatterns,
         commandmentsConfig,
         workflows,
+        branding,
     });
 
-    console.log(`\n✓ Generated ${skills.length} skills to ${outputDir}`);
+    console.log(`\n✓ Generated ${skills.length} native skills to ${outputDir}`);
 
-    return skills.map(serializeSkill);
+    const nativeSkills = skills.map(serializeSkill);
+
+    console.log('\nImporting external skill sources...');
+    const externalSkills = ingestExternalSkills({
+        configDir,
+        repoRoot,
+        outputDir,
+        existingIds: new Set(nativeSkills.map(s => s.id)),
+        log: console.log,
+    });
+    console.log(`  Imported ${externalSkills.length} external skill(s)`);
+
+    return [...nativeSkills, ...externalSkills];
 }
 
 export {

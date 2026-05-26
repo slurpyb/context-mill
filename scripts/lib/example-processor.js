@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { composePlugins, ignoreLinePlugin, ignoreFilePlugin, ignoreBlockPlugin } from '../plugins/index.js';
-import { REPO_URL } from './constants.js';
+import { loadBranding } from './branding.js';
 
 /**
  * Load skip patterns from YAML config
@@ -120,7 +120,7 @@ function fileToMarkdown(relativePath, content, extension, plugins = []) {
  * Build markdown header for example
  */
 function buildHeader(displayName, repoUrl, examplePath) {
-    let header = `# PostHog ${displayName} Example Project\n\n`;
+    let header = `# ${displayName} Example Project\n\n`;
     header += `Repository: ${repoUrl}\n`;
     header += `Path: ${examplePath}\n`;
     header += '\n---\n\n';
@@ -141,7 +141,7 @@ function buildHeader(displayName, repoUrl, examplePath) {
  */
 function processExample({ examplePath, displayName, id, repoRoot, skipPatterns, plugins = [] }) {
     const absolutePath = path.join(repoRoot, examplePath);
-    const repoUrl = REPO_URL;
+    const repoUrl = loadBranding(path.join(repoRoot, 'transformation-config')).repo_url;
 
     if (!fs.existsSync(absolutePath)) {
         throw new Error(`Example directory not found: ${absolutePath}`);

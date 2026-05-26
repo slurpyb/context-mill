@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { generateAllSkills, fetchDoc } from './lib/skill-generator.js';
-import { generateMarketplace } from './lib/marketplace-generator.js';
+import { generatePlugin } from './lib/plugin-generator.js';
 import {
     loadDocsConfig,
     zipSkillToBuffer,
@@ -72,8 +72,8 @@ async function main() {
             console.log(`  ✓ ${filename} (${(buffer.length / 1024).toFixed(1)} KB)`);
         }
 
-        console.log('\nGenerating marketplace plugins...');
-        const marketplaceResult = generateMarketplace({
+        console.log('\nGenerating plugin...');
+        const pluginResult = generatePlugin({
             skills,
             tempDir,
             version: BUILD_VERSION,
@@ -139,8 +139,8 @@ async function main() {
                 console.log(`  - ${doc.id} (${docContents[doc.id].length} chars)`);
             }
         }
-        console.log(`\nMarketplace: ${marketplaceResult.marketplaceDir}`);
-        console.log(`  ${marketplaceResult.pluginCount} plugins, ${marketplaceResult.skillCount} skills`);
+        console.log(`\nPlugin: ${pluginResult.pluginDir}`);
+        console.log(`  ${pluginResult.skillCount} skills`);
 
     } catch (e) {
         console.error('\n[FATAL] Build failed:', e.message);

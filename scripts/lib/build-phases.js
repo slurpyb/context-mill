@@ -10,7 +10,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 import archiver from 'archiver';
 import { generateSkillsByIds } from './skill-generator.js';
-import { REPO_URL } from './constants.js';
+import { loadBranding } from './branding.js';
 
 /**
  * Load uri-schema.yaml.
@@ -32,7 +32,7 @@ function loadDocsConfig(configDir) {
 
 /**
  * Recover inlined doc text from a previous manifest.json. Used as a doc cache
- * so partial rebuilds don't refetch from posthog.com.
+ * so partial rebuilds don't refetch doc URLs over the network.
  *
  * Returns a map { docId → text } for every resource whose mimeType is
  * text/markdown and that has a `resource.text` field. Returns {} on missing
@@ -103,15 +103,15 @@ async function createBundledArchive(outputPath, manifest, skillZips) {
  * those get inlined under `resource.text`; everything else becomes a skill
  * resource with a download URL.
  */
-function generateManifest({ resources, uriSchema, version, docContents = {} }) {
+function generateManifest({ resources, uriSchema, version, docContents = {}, repoUrl }) {
     const scheme = uriSchema.scheme;
     const skillPattern = uriSchema.patterns.skill;
     const docPattern = uriSchema.patterns.doc;
 
     const baseDownloadUrl = process.env.SKILLS_BASE_URL
         || (version && version !== 'dev'
-            ? `${REPO_URL}/releases/download/v${version}`
-            : `${REPO_URL}/releases/latest/download`);
+            ? `${repoUrl}/releases/download/v${version}`
+            : `${repoUrl}/releases/latest/download`);
 
     return {
         version: uriSchema.manifest_version,
@@ -167,6 +167,7 @@ function writeManifestAndMenu({ allSkills, docContents, distDir, configDir, vers
 
     const uriSchema = loadUriSchema(configDir);
     const docEntries = loadDocsConfig(configDir);
+    const branding = loadBranding(configDir);
 
     const docResources = docEntries.map(d => ({
         id: d.id,
@@ -177,7 +178,7 @@ function writeManifestAndMenu({ allSkills, docContents, distDir, configDir, vers
     }));
     const allResources = [...allSkills, ...docResources];
 
-    const manifest = generateManifest({ resources: allResources, uriSchema, version, docContents });
+    const manifest = generateManifest({ resources: allResources, uriSchema, version, docContents, repoUrl: branding.repo_url });
 
     fs.writeFileSync(path.join(skillsDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
